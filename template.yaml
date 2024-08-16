@@ -1,0 +1,168 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Transform: AWS::Serverless-2016-10-31
+Description: >
+  aws-bedrock-sam-app
+
+  Sample SAM Template for aws-bedrock-sam-app
+
+Globals:
+  Function:
+    Timeout: 20
+    MemorySize: 128
+    Runtime: python3.9
+    Architectures:
+      - x86_64
+
+Resources:
+  # Rest API
+  ChatRestApi:
+    Type: AWS::Serverless::Api
+    Properties:
+      StageName: prod
+      Name: ChatRestApi
+      Description: "A rest api for a chat application"
+
+      # Enabling cors
+      Cors:
+        AllowMethods: "'GET,POST,OPTIONS'"
+        AllowHeaders: "'*'"
+        AllowOrigin: "'*'"
+
+  # Secrets manager to store JWT token secret
+  JWTUserTokenSecret:
+    Type: AWS::SecretsManager::Secret
+    Properties:
+      Name: JWTUserTokenSecret
+      Description: "This secret has a dynamically generated secret password."
+      # Generate a random string 30 charatcers long for the JWT secret
+      GenerateSecretString:
+        GenerateStringKey: "jwt_secret"
+        PasswordLength: 30
+        ExcludeCharacters: '"@/\:;+*'''
+        SecretStringTemplate: '{"secret_name": "aws-bedrock-sam-app-jwt-secret"}'
+
+  # DynamoDB table to store users
+  UsersTable:
+    Type: AWS::Serverless::SimpleTable
+    Properties:
+      TableName: users-table
+      PrimaryKey:
+        Name: email
+        Type: String
+      ProvisionedThroughput:
+        ReadCapacityUnits: 2
+        WriteCapacityUnits: 2
+
+  # DynamoDB table to store prompts
+  PromptsTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: prompts-table
+      AttributeDefinitions:
+        - AttributeName: id
+          AttributeType: S
+        - AttributeName: email
+          AttributeType: S
+        - AttributeName: created_at
+          AttributeType: S
+      KeySchema:
+        - AttributeName: id
+          KeyType: HASH
+      GlobalSecondaryIndexes:
+        - IndexName: email-created_at-index
+          KeySchema:
+            - AttributeName: email
+              KeyType: HASH
+            - AttributeName: created_at
+              KeyType: RANGE
+          Projection:
+            ProjectionType: ALL
+          ProvisionedThroughput:
+            ReadCapacityUnits: 2
+            WriteCapacityUnits: 2
+      ProvisionedThroughput:
+        ReadCapacityUnits: 2
+        WriteCapacityUnits: 2
+
+  # Function for user registration
+  UserRegistrationFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: src/handlers/auth.user_register_handler
+      Description: A HTTP post method to register a user and add record to a DynamoDB table.
+      Policies:
+        # Give Create/Read/Update/Delete Permissions to the UsersTable
+        - DynamoDBCrudPolicy:
+            TableName: !Ref UsersTable
+      Environment:
+        Variables:
+          # Make table name accessible as environment variable from function code during execution
+          USER_TABLE: !Ref UsersTable
+      Events:
+        Api:
+          Type: Api
+          Properties:
+            RestApiId:
+              Ref: ChatRestApi
+            # Expose the API through the path /v1/auth/user/register
+            Path: /v1/auth/user/register
+            Method: POST
+
+  # Function for user login
+  UserLoginFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: src/handlers/auth.user_login_handler
+      Description: A HTTP post method to login a user and add record to a DynamoDB table.
+      Policies:
+        # Give Create/Read/Update/Delete Permissions to the UsersTable
+        - DynamoDBCrudPolicy:
+            TableName: !Ref UsersTable
+        # Give Permissions to read the SecretsManager
+        - AWSSecretsManagerGetSecretValuePolicy:
+            SecretArn: !Ref JWTUserTokenSecret
+      Environment:
+        Variables:
+          # Make table name accessible as environment variable from function code during execution
+          USER_TABLE: !Ref UsersTable
+      Events:
+        Api:
+          Type: Api
+          Properties:
+            RestApiId:
+              Ref: ChatRestApi
+            # Expose the API through the path /v1/auth/user/login
+            Path: /v1/auth/user/login
+            Method: POST
+
+  # Function for sending prompts
+  SendPromptFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: src/handlers/chat.lambda_handler
+      Description: Handles sending prompts to bedrock and receiving responses.
+      Policies:
+        - Statement:
+            - Effect: Allow
+              Action:
+                - bedrock:InvokeModel
+                - bedrock:ListModelInvocationJobs
+              Resource: "*"
+        # Give Create/Read/Update/Delete Permissions to the PromptsTable
+        - DynamoDBCrudPolicy:
+            TableName: !Ref PromptsTable
+        # Give Permissions to read the SecretsManager
+        - AWSSecretsManagerGetSecretValuePolicy:
+            SecretArn: !Ref JWTUserTokenSecret
+      Events:
+        Api:
+          Type: Api
+          Properties:
+            RestApiId: !Ref ChatRestApi
+            Path: /v1/chat
+            Method: POST
+
+Outputs:
+  ChatRestApiUrl:
+    Description: API Gateway endpoint URL for Prod stage for chat application
+    Value: !Sub "https://${ChatRestApi}.execute-api.${AWS::Region}.amazonaws.com/prod/"
