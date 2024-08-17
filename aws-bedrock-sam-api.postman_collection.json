@@ -1,0 +1,141 @@
+{
+	"info": {
+		"_postman_id": "598495c6-bcd7-4ed9-acf5-1e981a8e3641",
+		"name": "aws-bedrock-sam-api",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+		"_exporter_id": "1356553"
+	},
+	"item": [
+		{
+			"name": "chat",
+			"request": {
+				"method": "POST",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n    \"prompt\":\"Where is Lake Naivasha?\"\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "{{base-url}}/prod/v1/chat",
+					"host": [
+						"{{base-url}}"
+					],
+					"path": [
+						"prod",
+						"v1",
+						"chat"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "user register",
+			"request": {
+				"method": "POST",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n    \"email\": \"testemail@example.com\",\n    \"password\": \"Test@Pass*1239\"\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "{{base-url}}/prod/v1/auth/user/register",
+					"host": [
+						"{{base-url}}"
+					],
+					"path": [
+						"prod",
+						"v1",
+						"auth",
+						"user",
+						"register"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "user login",
+			"request": {
+				"method": "POST",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n    \"email\": \"testemail@example.com\",\n    \"password\": \"Test@Pass*1239\"\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "{{base-url}}/prod/v1/auth/user/login",
+					"host": [
+						"{{base-url}}"
+					],
+					"path": [
+						"prod",
+						"v1",
+						"auth",
+						"user",
+						"login"
+					]
+				}
+			},
+			"response": []
+		}
+	],
+	"auth": {
+		"type": "bearer",
+		"bearer": [
+			{
+				"key": "token",
+				"value": "{{auth-token}}",
+				"type": "string"
+			}
+		]
+	},
+	"event": [
+		{
+			"listen": "prerequest",
+			"script": {
+				"type": "text/javascript",
+				"packages": {},
+				"exec": [
+					""
+				]
+			}
+		},
+		{
+			"listen": "test",
+			"script": {
+				"type": "text/javascript",
+				"packages": {},
+				"exec": [
+					""
+				]
+			}
+		}
+	],
+	"variable": [
+		{
+			"key": "base-url",
+			"value": "https://f67k42y2f4.execute-api.us-east-1.amazonaws.com",
+			"type": "string"
+		},
+		{
+			"key": "auth-token",
+			"value": "eyJhbGciOiAiSFMyNTYiLCAidHlwIjogIkpXVCJ9.eyJzdWIiOiAiNjE2YzYwMTctNjE3Zi00NmIxLTllNTEtNzRiZmFlYmRkNzk5IiwgInVzZXIiOiAidGVzdGVtYWlsQGV4YW1wbGUuY29tIiwgImlhdCI6IDE3MjM4ODczMzYsICJleHAiOiAxNzIzODkwOTM2fQ.TKAX_iRBS0w-0kn-jYXexaDdbjJIe_r-tkh3x4wYOmw"
+		}
+	]
+}

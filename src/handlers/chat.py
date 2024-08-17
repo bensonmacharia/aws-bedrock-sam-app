@@ -13,6 +13,14 @@ bedrock = boto3.client(
 modelId = 'cohere.command-text-v14'
 
 def lambda_handler(event, context):
+    """Header expected:
+        "Authorization: Bearere generated token" 
+    """
+    """Body expected:
+    {
+        "prompt":"Where is Lake Naivasha?"
+    }
+    """
     print('Event: ', json.dumps(event))
 
     # Check if headers are present
